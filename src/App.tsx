@@ -1,26 +1,72 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { observer } from 'mobx-react-lite';
+import React, { FC, useContext, useEffect, useState } from 'react';
+import { Context } from '.';
+import LoginForm from './components/register/LoginForm';
+import LoginSUForm from './components/register/LoginSUForm';
+import RegisterForm from './components/register/RegisterForm';
+import UserService from './services/UsersService';
+import { IUser } from './types';
 
-function App() {
+const App: FC = () => {
+  const { store } = useContext(Context);
+  const [users, setUsers] = useState<IUser[]>([]);
+  useEffect(() => {
+    if (localStorage.getItem('token')) store.checkAuth();
+  }, [store]);
+
+  async function getUsers() {
+    try {
+      const response = await UserService.fetchUsers();
+      setUsers(response.data);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      {store.isAuth ? (
+        <>
+          <h1>
+            Авторизований користувач {store.user.id} {store.user.role}
+          </h1>
+          <button
+            onClick={() => {
+              store.logout();
+              setUsers([]);
+            }}
+          >
+            Вийти
+          </button>
+        </>
+      ) : (
+        <>
+          <h1>Увійдіть</h1>
+          <RegisterForm />
+          <LoginForm />
+          <hr />
+          <LoginSUForm />
+        </>
+      )}
+      <hr />
+      <button
+        onClick={() => {
+          store.logout();
+          setUsers([]);
+        }}
+      >
+        Вийти
+      </button>
+      <hr />
+      <button onClick={getUsers}>Користувачі:</button>
+      <hr />
+      {users.map((user) => (
+        <div key={user.phone}>
+          {user.phone} {user.name}
+        </div>
+      ))}
     </div>
   );
-}
+};
 
-export default App;
+export default observer(App);
